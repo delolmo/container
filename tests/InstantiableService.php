@@ -6,6 +6,6 @@ namespace DelOlmo\Container;
 
 use stdClass;
 
-class ServiceMock extends stdClass
+class InstantiableService extends stdClass
 {
 }

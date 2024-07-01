@@ -56,7 +56,7 @@
             "rector process",
             "@dev:phpcbf"
         ],
-        "dev:infection": "infection --threads=4 --only-covered --min-msi=98",
+        "dev:infection": "infection --threads=4 --only-covered --min-msi=100",
         "dev:lint": "parallel-lint ./src",
         "dev:phpcbf": "phpcbf",
         "dev:phpcs": "phpcs -s --colors",

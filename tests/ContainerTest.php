@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DelOlmo\Container;
 
+use DelOlmo\ClassFinder\ClassFinder;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -14,12 +15,49 @@ use function sprintf;
 
 class ContainerTest extends TestCase
 {
+    public function testAutowireWithInstantiableClass(): void
+    {
+        $container = new Container();
+
+        $classFinder = $this->createMock(ClassFinder::class);
+
+        $classFinder
+            ->method('findAll')
+            ->willReturn([stdClass::class]);
+
+        $container->autowire('./', $classFinder);
+
+        Assert::assertTrue($container->has(stdClass::class));
+    }
+
+    public function testAutowireWithNonInstantiableClass(): void
+    {
+        $container = new Container();
+
+        $classFinder = $this->createMock(ClassFinder::class);
+
+        $classFinder
+            ->method('findAll')
+            ->willReturn([NonInstantiableService::class]);
+
+        $container->autowire('./', $classFinder);
+
+        Assert::assertFalse($container->has(NonInstantiableService::class));
+    }
+
     public function testGetReturnsSelfForContainerClass(): void
     {
         $container = new Container();
 
         Assert::assertSame($container, $container->get(Container::class));
         Assert::assertSame($container, $container->get(ContainerInterface::class));
+    }
+
+    public function testReturnsResolverClass(): void
+    {
+        $container = new Container();
+
+        Assert::assertTrue($container->get(Resolver::class) instanceof Resolver);
     }
 
     public function testGetThrowsExceptionForUnknownService(): void
@@ -48,10 +86,10 @@ class ContainerTest extends TestCase
     public function testGetReturnsServiceIfParentExists(): void
     {
         $container = new Container();
-        $service   = new ServiceMock();
+        $service   = new InstantiableService();
         $container->set(stdClass::class, $service);
 
-        Assert::assertSame($service, $container->get(ServiceMock::class));
+        Assert::assertSame($service, $container->get(InstantiableService::class));
     }
 
     public function testHasReturnsFalseForUnknownService(): void
@@ -73,6 +111,22 @@ class ContainerTest extends TestCase
         Assert::assertFalse($container->has('service_key'));
     }
 
+    public function testRegisterServiceProvider(): void
+    {
+        $parameters = ['test1', 'test2'];
+
+        $container = new Container([], $parameters);
+
+        $provider = $this->createMock(ServiceProvider::class);
+
+        $provider
+            ->expects(self::once())
+            ->method('register')
+            ->with($container, $parameters);
+
+        $container->register($provider);
+    }
+
     public function testSetAddsServiceToContainer(): void
     {
         $container = new Container();
@@ -83,12 +137,35 @@ class ContainerTest extends TestCase
         Assert::assertSame($service, $container->get(stdClass::class));
     }
 
+    public function testSetStaticFunctionAndGetInstance(): void
+    {
+        $container = new Container();
+        $container->set(InstantiableService::class, static fn () => new InstantiableService());
+
+        Assert::assertTrue($container->has(InstantiableService::class));
+        Assert::assertTrue($container->get(InstantiableService::class) instanceof InstantiableService);
+    }
+
+    public function testSetCallableAndGetInstance(): void
+    {
+        $container = new Container();
+        $container->set(InstantiableService::class, new class () {
+            public function __invoke(): InstantiableService
+            {
+                return new InstantiableService();
+            }
+        });
+
+        Assert::assertTrue($container->has(InstantiableService::class));
+        Assert::assertTrue($container->get(InstantiableService::class) instanceof InstantiableService);
+    }
+
     public function testSetClosureAndGetInstance(): void
     {
         $container = new Container();
-        $container->set(ServiceMock::class, static fn () => new ServiceMock());
+        $container->set(InstantiableService::class, new Closure(InstantiableService::class));
 
-        Assert::assertTrue($container->has(ServiceMock::class));
-        Assert::assertTrue($container->get(ServiceMock::class) instanceof ServiceMock);
+        Assert::assertTrue($container->has(InstantiableService::class));
+        Assert::assertTrue($container->get(InstantiableService::class) instanceof InstantiableService);
     }
 }
