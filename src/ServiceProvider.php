@@ -6,5 +6,6 @@ namespace DelOlmo\Container;
 
 interface ServiceProvider
 {
-    public function register(Container $container): void;
+    /** @param array<array-key, mixed> $parameters */
+    public function register(Container $container, array $parameters): void;
 }

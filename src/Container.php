@@ -24,9 +24,14 @@ use function sprintf;
 
 final class Container implements ContainerInterface
 {
-    /** @param array<class-string, mixed> $services */
-    public function __construct(private array $services = [])
-    {
+    /**
+     * @param array<class-string, mixed> $services
+     * @param array<array-key, mixed>    $parameters
+     */
+    public function __construct(
+        private array $services = [],
+        private readonly array $parameters = [],
+    ) {
         $this->set(ContainerInterface::class, fn () => $this);
     }
 
@@ -104,7 +109,7 @@ final class Container implements ContainerInterface
 
     public function register(ServiceProvider $provider): void
     {
-        $provider->register($this);
+        $provider->register($this, $this->parameters);
     }
 
     /**
