@@ -59,7 +59,7 @@ final class Container implements ContainerInterface
 
             if (is_callable($service)) {
                 /** @psalm-var object $service */
-                $service = $service($this);
+                $service = $service($this, $this->parameters);
 
                 $this->services[$id] = $service;
             }
@@ -80,7 +80,7 @@ final class Container implements ContainerInterface
 
             if (is_callable($service)) {
                 /** @psalm-var object $service */
-                $service = $service($this);
+                $service = $service($this, $this->parameters);
 
                 $this->services[$key] = $service;
             }
@@ -111,8 +111,8 @@ final class Container implements ContainerInterface
     }
 
     /**
-     * @param class-string<T> $id
-     * @param T|callable      $object
+     * @param class-string<T>         $id
+     * @param T|callable(Container):T $object
      *
      * @template T of object
      */
