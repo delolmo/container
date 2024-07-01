@@ -102,6 +102,11 @@ final class Container implements ContainerInterface
         return isset($this->services[$id]);
     }
 
+    public function register(ServiceProvider $provider): void
+    {
+        $provider->register($this);
+    }
+
     /**
      * @param class-string<T> $id
      * @param T|Closure       $object
