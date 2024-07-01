@@ -1,5 +1,6 @@
 {
     "name": "delolmo/container",
+    "description": "A lightweight PSR-11 container implementation, providing essential functionality without the excess of full-fledged dependency injection containers",
     "license": "MIT",
     "type": "library",
     "authors": [
