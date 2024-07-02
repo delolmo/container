@@ -19,13 +19,9 @@ use function sprintf;
 
 final class Container implements ContainerInterface
 {
-    /**
-     * @param array<class-string, mixed> $services
-     * @param array<array-key, mixed>    $parameters
-     */
+    /** @param array<string, mixed> $services */
     public function __construct(
         private array $services = [],
-        private readonly array $parameters = [],
     ) {
         $this->set(ContainerInterface::class, fn () => $this);
         $this->set(Resolver::class, fn () => new Resolver($this));
@@ -54,12 +50,12 @@ final class Container implements ContainerInterface
     public function get(string $id): mixed
     {
         if ($this->has($id)) {
-            /** @psalm-var object|callable $service */
+            /** @psalm-suppress MixedAssignment */
             $service = $this->services[$id];
 
             if (is_callable($service)) {
-                /** @psalm-var object $service */
-                $service = $service($this, $this->parameters);
+                /** @psalm-suppress MixedAssignment */
+                $service = $service($this);
 
                 $this->services[$id] = $service;
             }
@@ -67,20 +63,24 @@ final class Container implements ContainerInterface
             return $service;
         }
 
-        /** @var list<class-string> $keys */
+        /** @var list<string> $keys */
         $keys = array_keys($this->services);
 
         foreach ($keys as $key) {
+            if (! class_exists($key) && ! interface_exists($key)) {
+                continue;
+            }
+
             if (! is_subclass_of($id, $key)) {
                 continue;
             }
 
-            /** @psalm-var object|callable $service */
+            /** @psalm-suppress MixedAssignment */
             $service = $this->services[$key];
 
             if (is_callable($service)) {
-                /** @psalm-var object $service */
-                $service = $service($this, $this->parameters);
+                /** @psalm-suppress MixedAssignment */
+                $service = $service($this);
 
                 $this->services[$key] = $service;
             }
@@ -94,29 +94,18 @@ final class Container implements ContainerInterface
         ));
     }
 
-    /** @psalm-assert-if-true class-string $id */
     #[Override]
     public function has(string $id): bool
     {
-        if (! class_exists($id) && ! interface_exists($id)) {
-            return false;
-        }
-
         return isset($this->services[$id]);
     }
 
     public function register(ServiceProvider $provider): void
     {
-        $provider->register($this, $this->parameters);
+        $provider->register($this);
     }
 
-    /**
-     * @param class-string<T>         $id
-     * @param T|callable(Container):T $object
-     *
-     * @template T of object
-     */
-    public function set(string $id, $object): void
+    public function set(string $id, mixed $object): void
     {
         $this->services[$id] = $object;
     }

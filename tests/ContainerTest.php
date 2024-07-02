@@ -108,21 +108,19 @@ class ContainerTest extends TestCase
 
         $container->set('service_key', new stdClass());
 
-        Assert::assertFalse($container->has('service_key'));
+        Assert::assertTrue($container->has('service_key'));
     }
 
     public function testRegisterServiceProvider(): void
     {
-        $parameters = ['test1', 'test2'];
-
-        $container = new Container([], $parameters);
+        $container = new Container();
 
         $provider = $this->createMock(ServiceProvider::class);
 
         $provider
             ->expects(self::once())
             ->method('register')
-            ->with($container, $parameters);
+            ->with($container);
 
         $container->register($provider);
     }
