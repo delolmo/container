@@ -105,8 +105,8 @@ final class Container implements ContainerInterface
         $provider->register($this);
     }
 
-    public function set(string $id, mixed $object): void
+    public function set(string $id, mixed $value): void
     {
-        $this->services[$id] = $object;
+        $this->services[$id] = $value;
     }
 }
