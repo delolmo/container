@@ -46,27 +46,47 @@ final class Container implements ContainerInterface
         }
     }
 
+    public function extend(string $id, callable $callable): void
+    {
+        if (! $this->has($id)) {
+            throw new RuntimeException(sprintf(
+                'Unable to find service of type \'%s\'',
+                $id,
+            ));
+        }
+
+        /** @psalm-suppress MixedAssignment */
+        $rawService = $this->services[$id];
+
+        /** @psalm-suppress MissingClosureReturnType */
+        $this->services[$id] = static function (ContainerInterface $container) use ($rawService, $callable) {
+            /** @psalm-suppress MixedAssignment */
+            $resolvedService = is_callable($rawService) ? $rawService($container) : $rawService;
+
+            $callable($resolvedService, $container);
+
+            return $resolvedService;
+        };
+    }
+
     #[Override]
     public function get(string $id): mixed
     {
+        $service = null;
+
         if ($this->has($id)) {
             /** @psalm-suppress MixedAssignment */
             $service = $this->services[$id];
-
-            if (is_callable($service)) {
-                /** @psalm-suppress MixedAssignment */
-                $service = $service($this);
-
-                $this->services[$id] = $service;
-            }
-
-            return $service;
         }
 
         /** @var list<string> $keys */
         $keys = array_keys($this->services);
 
         foreach ($keys as $key) {
+            if ($service !== null) {
+                break;
+            }
+
             if (! class_exists($key) && ! interface_exists($key)) {
                 continue;
             }
@@ -78,20 +98,17 @@ final class Container implements ContainerInterface
             /** @psalm-suppress MixedAssignment */
             $service = $this->services[$key];
 
-            if (is_callable($service)) {
-                /** @psalm-suppress MixedAssignment */
-                $service = $service($this);
-
-                $this->services[$key] = $service;
-            }
-
-            return $service;
+            break;
         }
 
-        throw new RuntimeException(sprintf(
-            'Unable to find service of type \'%s\'',
-            $id,
-        ));
+        if ($service === null) {
+            throw new RuntimeException(sprintf(
+                'Unable to find service of type \'%s\'',
+                $id,
+            ));
+        }
+
+        return is_callable($service) ? $service($this) : $service;
     }
 
     #[Override]
