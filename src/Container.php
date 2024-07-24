@@ -19,6 +19,9 @@ use function sprintf;
 
 final class Container implements ContainerInterface
 {
+    /** @var array<string, callable> */
+    private array $extensions = [];
+
     /** @param array<string, mixed> $services */
     public function __construct(
         private array $services = [],
@@ -48,25 +51,7 @@ final class Container implements ContainerInterface
 
     public function extend(string $id, callable $callable): void
     {
-        if (! $this->has($id)) {
-            throw new RuntimeException(sprintf(
-                'Unable to find service of type \'%s\'',
-                $id,
-            ));
-        }
-
-        /** @psalm-suppress MixedAssignment */
-        $rawService = $this->services[$id];
-
-        /** @psalm-suppress MissingClosureReturnType */
-        $this->services[$id] = static function (ContainerInterface $container) use ($rawService, $callable) {
-            /** @psalm-suppress MixedAssignment */
-            $resolvedService = is_callable($rawService) ? $rawService($container) : $rawService;
-
-            $callable($resolvedService, $container);
-
-            return $resolvedService;
-        };
+        $this->extensions[$id] = $callable;
     }
 
     #[Override]
@@ -108,7 +93,18 @@ final class Container implements ContainerInterface
             ));
         }
 
-        return is_callable($service) ? $service($this) : $service;
+        /** @psalm-suppress MixedAssignment */
+        $resolvedService = is_callable($service) ? $service($this) : $service;
+
+        foreach ($this->extensions as $key => $callable) {
+            if ($key !== $id) {
+                continue;
+            }
+
+            $callable($resolvedService, $this);
+        }
+
+        return $resolvedService;
     }
 
     #[Override]
